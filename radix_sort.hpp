@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <limits>
 #include <climits>
 
 #ifndef RADIX_SORT_H
@@ -8,13 +9,11 @@ namespace RadixSort {
 
 using std::size_t;
 
-const size_t values_in_byte = 1U << CHAR_BIT;
-
 template<int index, typename T>
 inline size_t byte(T value)
 {
-    const size_t lsb_mask = values_in_byte - 1;
-    return (value >> (index * CHAR_BIT)) & lsb_mask;
+    static_assert(CHAR_BIT == 8, "Supports only 8 bit bytes");
+    return (value >> (index * CHAR_BIT)) & 255;
 }
 
 template<typename T, typename ExtractByteFuncT, typename BitwiseTransformFuncT>
@@ -51,7 +50,7 @@ void radix_sort_calculate_offset_table_16(size_t* freq_0, size_t* freq_1)
     size_t offset_0 = 0;
     size_t offset_1 = 0;
  
-    for (size_t i = 0; i < values_in_byte; i += 4)
+    for (size_t i = 0; i < 256; i += 4)
     {
         size_t temp_offset = freq_0[i] + offset_0;
         freq_0[i] = offset_0; 
@@ -95,7 +94,7 @@ void radix_sort_calculate_offset_table_32(size_t* freq_0, size_t* freq_1,
     size_t offset_2 = 0;
     size_t offset_3 = 0;
 
-    for (size_t i = 0; i < values_in_byte; i += 4)
+    for (size_t i = 0; i < 256; i += 4)
     {
         size_t temp_offset = freq_0[i] + offset_0;
         freq_0[i] = offset_0;
@@ -177,7 +176,7 @@ void radix_sort_calculate_offset_table_64(size_t* freq_0, size_t* freq_1,
     size_t offset_6 = 0;
     size_t offset_7 = 0;
 
-    for (size_t i = 0; i < values_in_byte; i += 4)
+    for (size_t i = 0; i < 256; i += 4)
     {
         size_t temp_offset = freq_0[i] + offset_0; 
         freq_0[i] = offset_0; 
@@ -312,7 +311,7 @@ void radix_sort_calculate_offset_table_64(size_t* freq_0, size_t* freq_1,
 template <typename T, typename F>
 void radix_sort_16_impl(T* array, size_t size, T* temp, F bitwise_transform)
 {
-    size_t frequencies[2][values_in_byte] = { 0 };
+    size_t frequencies[2][256] = { 0 };
 
     size_t* freq_0 = frequencies[0];
     size_t* freq_1 = frequencies[1];
@@ -363,7 +362,7 @@ void radix_sort_16_impl(T* array, size_t size, T* temp, F bitwise_transform)
 template <typename T, typename F>
 void radix_sort_32_impl(T* array, size_t size, T* temp, F bitwise_transform)
 {
-    size_t frequencies[4][values_in_byte] = { 0 };
+    size_t frequencies[4][256] = { 0 };
 
     size_t* freq_0 = frequencies[0];
     size_t* freq_1 = frequencies[1];
@@ -428,7 +427,7 @@ void radix_sort_32_impl(T* array, size_t size, T* temp, F bitwise_transform)
 template <typename T, typename F>
 void radix_sort_64_impl(T* array, size_t size, T* temp, F bitwise_transform)
 {
-    size_t frequencies[8][values_in_byte] = { 0 };
+    size_t frequencies[8][256] = { 0 };
 
     size_t* freq_0 = frequencies[0];
     size_t* freq_1 = frequencies[1];
@@ -581,6 +580,8 @@ void radix_sort(int64_t * array, size_t size, int64_t* temp)
 
 void radix_sort(float* array, size_t size, float* temp)
 {
+    static_assert(std::numeric_limits<float>::is_iec559, "Only IEEE 754 floating point");
+
     auto flip = [](float v) -> uint32_t
     {
         uint32_t as_uint = *reinterpret_cast<uint32_t*>(&v);
@@ -593,14 +594,14 @@ void radix_sort(float* array, size_t size, float* temp)
 
 void radix_sort(uint8_t * array, size_t size)
 {    
-    size_t frequencies[values_in_byte] = { 0 };
+    size_t frequencies[1 << CHAR_BIT] = { 0 };
 
     for(size_t i = 0; i < size; ++i)
         ++frequencies[array[i]];
 
     size_t write_index = 0;
 
-    for(size_t value = 0; value < values_in_byte; ++value)
+    for(size_t value = 0; value < (1 << CHAR_BIT); ++value)
     {
         size_t element_count = frequencies[value];
 
@@ -611,14 +612,14 @@ void radix_sort(uint8_t * array, size_t size)
 
 void radix_sort(int8_t * array, size_t size)
 {
-    size_t frequencies[values_in_byte] = { 0 };
+    size_t frequencies[1 << CHAR_BIT] = { 0 };
 
     for(size_t i = 0; i < size; ++i)
         ++frequencies[int32_t(array[i]) + int32_t(128)];
 
     size_t write_index = 0;
 
-    for(int32_t value = 0; value < values_in_byte; ++value)
+    for(int32_t value = 0; value < (1 << CHAR_BIT); ++value)
     {
         size_t element_count = frequencies[value];
 
